@@ -31,6 +31,7 @@ async function run() {
 
     const database = client.db("hireloop_db");
     const jobCollection = database.collection("jobs");
+    const companyCollection = database.collection("companies");
 
     // jobs
     app.get("/api/jobs", async (req, res) => {
@@ -84,6 +85,24 @@ async function run() {
       console.log(deleteJob, jobId);
       const result = await jobCollection.deleteOne(deleteJob);
       res.json(result);
+    });
+
+    // company related api
+    app.get("/api/my/companies", async (req, res) => {
+      const query = {};
+      const { recruiterId } = req.query;
+
+      if (recruiterId) {
+        query.recruiterId = recruiterId;
+      }
+      const result = await companyCollection.findOne(query);
+      res.json(result);
+    });
+
+    app.post("/api/companies", async (req, res) => {
+      const company = req.body;
+      const result = await companyCollection.insertOne(company);
+      res.send(result);
     });
 
     await client.db("admin").command({ ping: 1 });
