@@ -1,5 +1,5 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const cors = require("cors");
 const port = 5000;
@@ -55,6 +55,25 @@ async function run() {
       const result = await jobCollection.insertOne(job);
       console.log("/api/jobs", result);
       res.send(result);
+    });
+
+    app.patch("/api/jobs", async (req, res) => {
+      const { jobId } = req.query;
+      const editData = req.body;
+
+      console.log("From Patch api: ", jobId, editData);
+
+      const filter = {
+        _id: new ObjectId(jobId),
+      };
+      const updatedDocument = {
+        $set: {
+          ...editData,
+        },
+      };
+
+      const result = await jobCollection.updateOne(filter, updatedDocument);
+      res.json(result);
     });
 
     await client.db("admin").command({ ping: 1 });
