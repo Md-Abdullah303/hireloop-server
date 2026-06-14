@@ -32,6 +32,8 @@ async function run() {
     const database = client.db("hireloop_db");
     const jobCollection = database.collection("jobs");
     const companyCollection = database.collection("companies");
+    const applicationCollection = database.collection("applications");
+    const userCollection = database.collection("users");
 
     // jobs
     app.get("/api/all/jobs", async (req, res) => {
@@ -125,6 +127,17 @@ async function run() {
         createdAt: new Date(),
       };
       const result = await companyCollection.insertOne(newCompany);
+      res.send(result);
+    });
+
+    // application related api
+    app.post("/api/applications", async (req, res) => {
+      const applicant = req.body;
+      const newApplicant = {
+        ...applicant,
+        applyingAt: new Date(),
+      };
+      const result = await applicationCollection.insertOne(newApplicant);
       res.send(result);
     });
 
