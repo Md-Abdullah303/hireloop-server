@@ -34,6 +34,12 @@ async function run() {
     const companyCollection = database.collection("companies");
 
     // jobs
+    app.get("/api/all/jobs", async (req, res) => {
+      const cursor = jobCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
     app.get("/api/jobs", async (req, res) => {
       const query = {};
       const companyId = req.query.companyId;
@@ -49,6 +55,15 @@ async function run() {
       const cursor = jobCollection.find(query);
       const result = await cursor.toArray();
       res.json(result);
+    });
+
+    app.get("/api/jobs/:id", async (req, res) => {
+      const { id } = req.params;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await jobCollection.findOne(query);
+      res.send(result);
     });
 
     app.post("/api/jobs", async (req, res) => {
