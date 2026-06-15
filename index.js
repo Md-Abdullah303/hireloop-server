@@ -131,6 +131,19 @@ async function run() {
     });
 
     // application related api
+    app.get("/api/applications", async (req, res) => {
+      const query = {};
+      if (req.query.applicantId) {
+        query.applicantId = applicantId;
+      }
+      if (req.jobId) {
+        query.jobId = jobId;
+      }
+      const cursor = applicationCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
     app.post("/api/applications", async (req, res) => {
       const applicant = req.body;
       const newApplicant = {
