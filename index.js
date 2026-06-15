@@ -35,6 +35,9 @@ async function run() {
     const applicationCollection = database.collection("applications");
     const userCollection = database.collection("user");
     const planCollection = database.collection("plans");
+    const subscriptionCollection = database.collection(
+      "subscriptionCollections",
+    );
 
     // jobs
     app.get("/api/all/jobs", async (req, res) => {
@@ -163,6 +166,32 @@ async function run() {
       }
       const result = await planCollection.findOne(query);
       res.send(result);
+    });
+
+    // subscription related api
+    app.post("/api/subscriptions", async (req, res) => {
+      const data = req.body;
+      const subsInfo = {
+        ...data,
+        createdAt: new Date(),
+      };
+      const result = await subscriptionCollection.insertOne(subsInfo);
+
+      // update the use plan
+      const filter = {
+        email: data.email,
+      };
+      const updateDocument = {
+        $set: {
+          plan: data.planId,
+        },
+      };
+
+      const updateResult = await userCollection.updateOne(
+        filter,
+        updateDocument,
+      );
+      res.send(updateResult);
     });
 
     await client.db("admin").command({ ping: 1 });
