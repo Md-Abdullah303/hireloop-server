@@ -33,7 +33,8 @@ async function run() {
     const jobCollection = database.collection("jobs");
     const companyCollection = database.collection("companies");
     const applicationCollection = database.collection("applications");
-    const userCollection = database.collection("users");
+    const userCollection = database.collection("user");
+    const planCollection = database.collection("plans");
 
     // jobs
     app.get("/api/all/jobs", async (req, res) => {
@@ -151,6 +152,16 @@ async function run() {
         applyingAt: new Date(),
       };
       const result = await applicationCollection.insertOne(newApplicant);
+      res.send(result);
+    });
+
+    // plans related api
+    app.get("/api/plans", async (req, res) => {
+      const query = {};
+      if (req.query.planId) {
+        query.planId = req.query.planId;
+      }
+      const result = await planCollection.findOne(query);
       res.send(result);
     });
 
