@@ -65,9 +65,11 @@ async function run() {
 
     app.get("/api/jobs/:id", async (req, res) => {
       const { id } = req.params;
+
       const query = {
         _id: new ObjectId(id),
       };
+
       const result = await jobCollection.findOne(query);
       res.send(result);
     });
@@ -113,6 +115,12 @@ async function run() {
     });
 
     // company related api
+    app.get("/api/companies", async (req, res) => {
+      const cursor = companyCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
     app.get("/api/my/companies", async (req, res) => {
       const query = {};
       const { recruiterId } = req.query;
@@ -134,14 +142,27 @@ async function run() {
       res.send(result);
     });
 
+    app.patch("/api/companies/:id", async (req, res) => {
+      const { id } = req.params;
+      const updatedCompany = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: updatedCompany.status,
+        },
+      };
+      const result = await companyCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
     // application related api
     app.get("/api/applications", async (req, res) => {
       const query = {};
       if (req.query.applicantId) {
-        query.applicantId = applicantId;
+        query.applicantId = req.query.applicantId;
       }
-      if (req.jobId) {
-        query.jobId = jobId;
+      if (req.query.jobId) {
+        query.jobId = req.query.jobId;
       }
       const cursor = applicationCollection.find(query);
       const result = await cursor.toArray();
