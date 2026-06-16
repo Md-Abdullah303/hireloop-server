@@ -35,9 +35,54 @@ async function run() {
     const applicationCollection = database.collection("applications");
     const userCollection = database.collection("user");
     const planCollection = database.collection("plans");
+    const sessionCollection = database.collection("session");
     const subscriptionCollection = database.collection(
       "subscriptionCollections",
     );
+
+    // verification
+    const verifyToken = async (req, res, next) => {
+      const authHeader = req.headers?.authorization;
+      if (!authHeader) {
+        return res.status(401).send({ message: "unauthorized access" });
+      }
+
+      const token = authHeader.split(" ")[1];
+      if (!token) {
+        return res.status(401).send({ message: "unauthorized access" });
+      }
+
+      const query = { token: token };
+      const session = await sessionCollection.findOne(query);
+      const userId = session?.userId;
+
+      const userQuery = { _id: userId };
+      const user = await userCollection.findOne(userQuery);
+      // console.log("from verifytoken", user);
+      req.user = user;
+      next();
+    };
+
+    // must by use after verifyToken
+    const verifySeeker = async (req, res, next) => {
+      if (req.user?.role !== "seeker") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
+    const verifyRecruiter = async (req, res, next) => {
+      if (req.user?.role !== "recruiter") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
+
+    const verifyAdmin = async (req, res, next) => {
+      if (req.user?.role !== "admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
 
     // jobs
     app.get("/api/all/jobs", async (req, res) => {
@@ -115,7 +160,7 @@ async function run() {
     });
 
     // company related api
-    app.get("/api/companies", async (req, res) => {
+    app.get("/api/companies", verifyToken, async (req, res) => {
       const cursor = companyCollection.find();
       const result = await cursor.toArray();
       res.send(result);
@@ -142,32 +187,48 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/api/companies/:id", async (req, res) => {
-      const { id } = req.params;
-      const updatedCompany = req.body;
-      const filter = { _id: new ObjectId(id) };
-      const updatedDoc = {
-        $set: {
-          status: updatedCompany.status,
-        },
-      };
-      const result = await companyCollection.updateOne(filter, updatedDoc);
-      res.send(result);
-    });
+    app.patch(
+      "/api/companies/:id",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const { id } = req.params;
+        const updatedCompany = req.body;
+        const filter = { _id: new ObjectId(id) };
+        const updatedDoc = {
+          $set: {
+            status: updatedCompany.status,
+          },
+        };
+        const result = await companyCollection.updateOne(filter, updatedDoc);
+        res.send(result);
+      },
+    );
 
     // application related api
-    app.get("/api/applications", async (req, res) => {
-      const query = {};
-      if (req.query.applicantId) {
-        query.applicantId = req.query.applicantId;
-      }
-      if (req.query.jobId) {
-        query.jobId = req.query.jobId;
-      }
-      const cursor = applicationCollection.find(query);
-      const result = await cursor.toArray();
-      res.send(result);
-    });
+    app.get(
+      "/api/applications",
+      verifyToken,
+      verifySeeker,
+      async (req, res) => {
+        const query = {};
+        if (req.query.applicantId) {
+          query.applicantId = req.query.applicantId;
+
+          // check whether asking for user information or someone else
+          console.log("from test", req.user, req.query.applicantId);
+          if (req.user?._id.toString() !== req.query.applicantId) {
+            return res.status(403).send({ message: "forbidden access" });
+          }
+        }
+        if (req.query.jobId) {
+          query.jobId = req.query.jobId;
+        }
+        const cursor = applicationCollection.find(query);
+        const result = await cursor.toArray();
+        res.send(result);
+      },
+    );
 
     app.post("/api/applications", async (req, res) => {
       const applicant = req.body;
