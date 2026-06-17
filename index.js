@@ -58,7 +58,9 @@ async function run() {
 
       const userQuery = { _id: userId };
       const user = await userCollection.findOne(userQuery);
-      // console.log("from verifytoken", user);
+      if (!user) {
+        return res.status(401).send({ message: "unauthorized access" });
+      }
       req.user = user;
       next();
     };
@@ -76,7 +78,6 @@ async function run() {
       }
       next();
     };
-
     const verifyAdmin = async (req, res, next) => {
       if (req.user?.role !== "admin") {
         return res.status(403).send({ message: "forbidden access" });
@@ -86,7 +87,24 @@ async function run() {
 
     // jobs
     app.get("/api/all/jobs", async (req, res) => {
-      const cursor = jobCollection.find();
+      const query = {};
+
+      if (req.query.search) {
+        query.$or = [
+          { jobTitle: { $regex: req.query.search, $options: "i" } },
+          { companyName: { $regex: req.query.search, $options: "i" } },
+        ];
+      }
+
+      if (req.query.jobType) {
+        query.jobType = req.query.jobType;
+      }
+
+      if (req.query.isRemote) {
+        query.isRemote = true;
+      }
+
+      const cursor = jobCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     });
