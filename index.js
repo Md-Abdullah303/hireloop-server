@@ -89,19 +89,30 @@ async function run() {
     app.get("/api/all/jobs", async (req, res) => {
       const query = {};
 
+      // filter raleted work
       if (req.query.search) {
         query.$or = [
           { jobTitle: { $regex: req.query.search, $options: "i" } },
           { companyName: { $regex: req.query.search, $options: "i" } },
         ];
       }
-
       if (req.query.jobType) {
         query.jobType = req.query.jobType;
       }
-
       if (req.query.isRemote) {
         query.isRemote = true;
+      }
+
+      // pagination
+      if (req.query.page) {
+        const page = req.query.page;
+        const perPage = 12;
+        const skipItems = (page - 1) * perPage;
+
+        const total = await jobCollection.countDocuments(query);
+        const cursor = jobCollection.find(query).skip(skipItems).limit(perPage);
+        const jobs = await cursor.toArray();
+        return res.send({ total, jobs });
       }
 
       const cursor = jobCollection.find(query);
